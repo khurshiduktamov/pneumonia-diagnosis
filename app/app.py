@@ -1,3 +1,74 @@
+import streamlit as st
+from PIL import Image
+from model import load_model, load_xray_detector
+from predict import predict, is_xray
+import pathlib
+
+# Set the page title
+st.set_page_config(page_title="X-Ray pneumonia detection")
+
+# Add GitHub link with logo at the top
+st.markdown(
+    """
+    <div style="display: flex; align-items: center;">
+        <h3><a href="https://github.com/khurshiduktamov/pneumonia-diagnosis" target="_blank">
+            <img src="https://img.icons8.com/ios-filled/50/007BFF/github.png" alt="GitHub" style="margin-right: 10px;">Github Repository   
+        </a>
+        </h3>
+    </div>
+    """,
+    unsafe_allow_html=True
+)
+
+# Temporary redirect PosixPath to WindowsPath
+temp = pathlib.PosixPath
+pathlib.PosixPath = pathlib.WindowsPath
+
+# Function to load models - Updated to use st.cache_resource instead of st.cache
+@st.cache_resource
+def load_models():
+    model = load_model()  # Load pneumonia prediction model
+    xray_detector = load_xray_detector()  # Load X-ray detector model
+    return model, xray_detector
+
+st.title("Pneumonia Detection from Chest X-rays")
+st.write("Upload a chest X-ray image to get a prediction.")
+
+# Load models
+model, xray_detector = load_models()
+
+# Function to predict and display results
+def predict_and_display_results(image):
+    # Updated to use use_container_width instead of use_column_width
+    st.image(image, caption='Uploaded Image.', use_container_width=True)
+    st.write("")
+    st.write("Checking if the image is an X-ray...")
+    
+    # Save uploaded image temporarily
+    img_path = f"data/{uploaded_file.name}"
+    image.save(img_path)
+    
+    if is_xray(xray_detector, img_path):
+        st.write("Image is an X-ray. Classifying for pneumonia...")
+        label = predict(model, img_path)
+        st.write(f"Prediction: {label}")
+    else:
+        st.write("Uploaded image is not an X-ray. Please upload a chest X-ray image.")
+
+# Handle file upload
+uploaded_file = st.file_uploader("Choose an image...", type=["jpg", "jpeg", "png"])
+
+if uploaded_file is not None:
+    try:
+        image = Image.open(uploaded_file)
+        predict_and_display_results(image)
+    except Exception as e:
+        st.write(f"Error processing image: {e}")
+        st.write("Invalid image file. Please try again.")
+
+# Restore PosixPath after prediction
+pathlib.PosixPath = temp
+
 # import streamlit as st
 # from PIL import Image
 # from model import load_model
@@ -39,71 +110,73 @@
 #     st.write(f"Prediction: {label}")
 
 
-import streamlit as st
-from PIL import Image
-from model import load_model, load_xray_detector
-from predict import predict, is_xray
-import pathlib
+# Old working version. I know, it is not best practise but, I should have fixed fast.
 
-# Set the page title
-st.set_page_config(page_title="X-Ray pneumonia detection")
+# import streamlit as st
+# from PIL import Image
+# from model import load_model, load_xray_detector
+# from predict import predict, is_xray
+# import pathlib
 
-# Add GitHub link with logo at the top
-st.markdown(
-    """
-    <div style="display: flex; align-items: center;">
-        <h3><a href="https://github.com/khurshiduktamov/pneumonia-diagnosis" target="_blank">
-            <img src="https://img.icons8.com/ios-filled/50/007BFF/github.png" alt="GitHub" style="margin-right: 10px;">Github Repository   
-        </a>
-        </h3>
-    </div>
-    """,
-    unsafe_allow_html=True
-)
+# # Set the page title
+# st.set_page_config(page_title="X-Ray pneumonia detection")
 
-# Temporary redirect PosixPath to WindowsPath
-temp = pathlib.PosixPath
-pathlib.PosixPath = pathlib.WindowsPath
+# # Add GitHub link with logo at the top
+# st.markdown(
+#     """
+#     <div style="display: flex; align-items: center;">
+#         <h3><a href="https://github.com/khurshiduktamov/pneumonia-diagnosis" target="_blank">
+#             <img src="https://img.icons8.com/ios-filled/50/007BFF/github.png" alt="GitHub" style="margin-right: 10px;">Github Repository   
+#         </a>
+#         </h3>
+#     </div>
+#     """,
+#     unsafe_allow_html=True
+# )
 
-# Function to load models
-@st.cache(allow_output_mutation=True)
-def load_models():
-    model = load_model()  # Load pneumonia prediction model
-    xray_detector = load_xray_detector()  # Load X-ray detector model
-    return model, xray_detector
+# # Temporary redirect PosixPath to WindowsPath
+# temp = pathlib.PosixPath
+# pathlib.PosixPath = pathlib.WindowsPath
 
-st.title("Pneumonia Detection from Chest X-rays")
-st.write("Upload a chest X-ray image to get a prediction.")
+# # Function to load models
+# @st.cache(allow_output_mutation=True)
+# def load_models():
+#     model = load_model()  # Load pneumonia prediction model
+#     xray_detector = load_xray_detector()  # Load X-ray detector model
+#     return model, xray_detector
 
-# Load models
-model, xray_detector = load_models()
+# st.title("Pneumonia Detection from Chest X-rays")
+# st.write("Upload a chest X-ray image to get a prediction.")
 
-# Function to predict and display results
-def predict_and_display_results(image):
-    st.image(image, caption='Uploaded Image.', use_column_width=True)
-    st.write("")
-    st.write("Checking if the image is an X-ray...")
+# # Load models
+# model, xray_detector = load_models()
 
-    # Save uploaded image temporarily
-    img_path = f"data/{uploaded_file.name}"
-    image.save(img_path)
+# # Function to predict and display results
+# def predict_and_display_results(image):
+#     st.image(image, caption='Uploaded Image.', use_column_width=True)
+#     st.write("")
+#     st.write("Checking if the image is an X-ray...")
 
-    if is_xray(xray_detector, img_path):
-        st.write("Image is an X-ray. Classifying for pneumonia...")
-        label = predict(model, img_path)
-        st.write(f"Prediction: {label}")
-    else:
-        st.write("Uploaded image is not an X-ray. Please upload a chest X-ray image.")
+#     # Save uploaded image temporarily
+#     img_path = f"data/{uploaded_file.name}"
+#     image.save(img_path)
 
-# Handle file upload
-uploaded_file = st.file_uploader("Choose an image...", type=["jpg", "jpeg", "png"])
+#     if is_xray(xray_detector, img_path):
+#         st.write("Image is an X-ray. Classifying for pneumonia...")
+#         label = predict(model, img_path)
+#         st.write(f"Prediction: {label}")
+#     else:
+#         st.write("Uploaded image is not an X-ray. Please upload a chest X-ray image.")
 
-if uploaded_file is not None:
-    try:
-        image = Image.open(uploaded_file)
-        predict_and_display_results(image)
-    except:
-        st.write("Invalid image file. Please try again.")
+# # Handle file upload
+# uploaded_file = st.file_uploader("Choose an image...", type=["jpg", "jpeg", "png"])
 
-# Restore PosixPath after prediction
-pathlib.PosixPath = temp
+# if uploaded_file is not None:
+#     try:
+#         image = Image.open(uploaded_file)
+#         predict_and_display_results(image)
+#     except:
+#         st.write("Invalid image file. Please try again.")
+
+# # Restore PosixPath after prediction
+# pathlib.PosixPath = temp
